@@ -1,0 +1,23 @@
+version: '3.8'
+services:
+  whisperx:
+    image: whisper-custom:latest
+    restart: always
+    ports:
+      - "8000:9000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    environment:
+      - ASR_ENGINE=whisperx
+      - ASR_MODEL=large-v3
+    volumes:
+      - whisper_models:/root/.cache/whisper
+      - whisper_models:/app/models
+
+volumes:
+  whisper_models:
