@@ -41,8 +41,12 @@ COPY --from=swagger-ui /usr/share/nginx/html/swagger-ui.css swagger-ui-assets/sw
 COPY --from=swagger-ui /usr/share/nginx/html/swagger-ui-bundle.js swagger-ui-assets/swagger-ui-bundle.js
 
 RUN poetry config virtualenvs.in-project true
-# Instalar PyTorch con soporte CUDA 12.8 para RTX 5080 (usando pip directamente)
-RUN pip3 install torch==2.7.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+# Configurar pip con timeout extendido para descargas grandes
+RUN pip3 config set global.timeout 1000
+# Instalar PyTorch con soporte CUDA 12.8 para RTX 5080 (1GB+ de descarga, puede tardar)
+RUN pip3 install --default-timeout=1000 --retries=5 \
+    torch==2.7.1 torchvision torchaudio \
+    --index-url https://download.pytorch.org/whl/cu128
 # Instalar dependencias manualmente (sin poetry lock) para evitar conflictos con cu128
 RUN pip3 install \
     "fastapi>=0.115.14" \
