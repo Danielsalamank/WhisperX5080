@@ -41,10 +41,12 @@ COPY --from=swagger-ui /usr/share/nginx/html/swagger-ui.css swagger-ui-assets/sw
 COPY --from=swagger-ui /usr/share/nginx/html/swagger-ui-bundle.js swagger-ui-assets/swagger-ui-bundle.js
 
 RUN poetry config virtualenvs.in-project true
-# Instalar PyTorch con soporte CUDA 12.8 para RTX 5080
+# Instalar PyTorch con soporte CUDA 12.8 para RTX 5080 (usando pip directamente)
 RUN pip3 install torch==2.7.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
-RUN poetry install --only main --extras cuda --no-root
-RUN poetry install
+# Instalar dependencias principales (PyTorch ya instalado, no necesitamos --extras cuda)
+RUN poetry install --only main --no-root
+# Instalar el paquete
+RUN poetry install --only-root
 
 EXPOSE 9000
 
