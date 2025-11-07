@@ -30,7 +30,7 @@ services:
       - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
       - CUDA_MODULE_LOADING=LAZY
     ports:
-      - "9000:9000"
+      - "8000:9000"
     volumes:
       - ./app:/app/app
       - cache-whisper:/root/.cache

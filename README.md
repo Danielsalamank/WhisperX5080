@@ -84,9 +84,9 @@ Deberías ver el contenedor `whisperx5080-whisper-asr-webservice-gpu-1` corriend
 
 ### Paso 5: Acceder al Servicio
 
-- **Interfaz Web**: http://localhost:9000
-- **Documentación API**: http://localhost:9000/docs
-- **API Alternativa**: http://localhost:9000/redoc
+- **Interfaz Web**: http://localhost:8000
+- **Documentación API**: http://localhost:8000/docs
+- **API Alternativa**: http://localhost:8000/redoc
 
 ## 📊 Configuración de Modelos
 
@@ -121,7 +121,7 @@ docker compose -f docker-compose.gpu.yml restart
 ### Transcribir un Audio
 
 ```bash
-curl -X POST "http://localhost:9000/asr" \
+curl -X POST "http://localhost:8000/asr" \
   -H "accept: text/plain" \
   -H "Content-Type: multipart/form-data" \
   -F "audio_file=@tu_audio.mp3" \
@@ -133,7 +133,7 @@ curl -X POST "http://localhost:9000/asr" \
 ### Detectar Idioma
 
 ```bash
-curl -X POST "http://localhost:9000/detect-language" \
+curl -X POST "http://localhost:8000/detect-language" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
   -F "audio_file=@tu_audio.mp3"
@@ -142,7 +142,7 @@ curl -X POST "http://localhost:9000/detect-language" \
 ### Transcribir con Diarización (Múltiples Hablantes)
 
 ```bash
-curl -X POST "http://localhost:9000/asr" \
+curl -X POST "http://localhost:8000/asr" \
   -H "accept: text/plain" \
   -H "Content-Type: multipart/form-data" \
   -F "audio_file=@tu_audio.mp3" \
@@ -278,7 +278,7 @@ WhisperX soporta 99+ idiomas, incluyendo:
 - 🇰🇷 Coreano (ko)
 - Y muchos más...
 
-Ver lista completa en: http://localhost:9000/docs
+Ver lista completa en: http://localhost:8000/docs
 
 ## 📝 Variables de Entorno Disponibles
 
