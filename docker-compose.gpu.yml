@@ -12,13 +12,35 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+        limits:
+          memory: 14G  # Limitar memoria del contenedor para dejar espacio al sistema
     environment:
-      - ASR_MODEL=base
+      # Motor ASR: whisperx recomendado para mejor precisión
+      - ASR_ENGINE=whisperx
+      # Modelo: large-v3 para mejor calidad, medium para balance rendimiento/calidad
+      - ASR_MODEL=large-v3
+      # Dispositivo: CUDA para GPU
+      - ASR_DEVICE=cuda
+      # Cuantización: float16 para balance entre velocidad y precisión en RTX 5080
+      - ASR_QUANTIZATION=float16
+      # Token de Hugging Face (NECESARIO para WhisperX diarización)
+      # Obtener en: https://huggingface.co/settings/tokens
+      - HF_TOKEN=${HF_TOKEN:-}
+      # Optimizaciones de memoria para RTX 5080 16GB
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+      - CUDA_MODULE_LOADING=LAZY
     ports:
       - "9000:9000"
     volumes:
       - ./app:/app/app
       - cache-whisper:/root/.cache
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:9000/docs')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
 volumes:
   cache-whisper:

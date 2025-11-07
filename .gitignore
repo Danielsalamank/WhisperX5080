@@ -42,3 +42,7 @@ pip-wheel-metadata
 poetry/core/*
 
 public
+
+# Environment variables
+.env
+.env.local

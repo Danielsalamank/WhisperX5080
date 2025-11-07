@@ -10,6 +10,10 @@ ENV PYTHON_VERSION=3.10
 
 ENV POETRY_VENV=/app/.venv
 
+# Optimizaciones para RTX 5080 16GB
+ENV PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+ENV CUDA_MODULE_LOADING=LAZY
+
 RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get -qq update \
     && apt-get -qq install --no-install-recommends \
@@ -17,7 +21,6 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     python${PYTHON_VERSION}-venv \
     python3-pip \
     libcudnn8 \
-    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 RUN ln -s -f /usr/bin/python${PYTHON_VERSION} /usr/bin/python3 && \
@@ -38,8 +41,10 @@ COPY --from=swagger-ui /usr/share/nginx/html/swagger-ui.css swagger-ui-assets/sw
 COPY --from=swagger-ui /usr/share/nginx/html/swagger-ui-bundle.js swagger-ui-assets/swagger-ui-bundle.js
 
 RUN poetry config virtualenvs.in-project true
-RUN pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
-RUN poetry install --extras cuda
+# Instalar PyTorch con soporte CUDA 12.8 para RTX 5080
+RUN pip3 install torch==2.7.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+RUN poetry install --only main --extras cuda --no-root
+RUN poetry install
 
 EXPOSE 9000
 

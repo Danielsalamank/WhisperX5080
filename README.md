@@ -1,139 +1,323 @@
-# Guía para Construir y Ejecutar una Imagen Personalizada de WhisperX con GPU
+# WhisperX Web Service para RTX 5080
 
-Este documento contiene todos los pasos necesarios para construir una imagen de Docker personalizada para WhisperX que sea compatible con GPUs modernas (CUDA 12.8+) y para ejecutarla como un servicio con una API y una interfaz web.
+Servicio web de transcripción de audio usando WhisperX optimizado para NVIDIA RTX 5080 (16GB VRAM) con soporte para API REST y interfaz web.
+
+## 🚀 Características
+
+- ✅ **Optimizado para RTX 5080** con CUDA 12.8
+- ✅ **WhisperX**: Motor de transcripción de alta precisión
+- ✅ **Diarización**: Identificación de múltiples hablantes
+- ✅ **Múltiples modelos**: Desde tiny hasta large-v3
+- ✅ **API REST**: Integración fácil con tus aplicaciones
+- ✅ **Interfaz Web**: Prueba y usa directamente desde el navegador
+- ✅ **Docker**: Despliegue simplificado con contenedores
+
+## 📋 Requisitos Previos
+
+- **Docker** y **Docker Compose** instalados
+- **NVIDIA Docker Runtime** (nvidia-docker2)
+- **GPU**: RTX 5080 o similar con 16GB VRAM
+- **Drivers NVIDIA**: Versión compatible con CUDA 12.8+
+- **Token de Hugging Face**: Para usar diarización con WhisperX
+
+### Verificar instalación de Docker y NVIDIA
+
+```bash
+# Verificar Docker
+docker --version
+docker compose version
+
+# Verificar soporte GPU
+docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu22.04 nvidia-smi
+```
+
+## 🔧 Configuración Rápida
+
+### Paso 1: Configurar Variables de Entorno
+
+1. **Obtén tu token de Hugging Face**:
+   - Ve a https://huggingface.co/settings/tokens
+   - Crea un token de lectura (Read)
+   - Copia el token
+
+2. **Crea el archivo `.env`**:
+
+```bash
+# Copiar el archivo de ejemplo
+cp .env.example .env
+
+# Editar y agregar tu token
+nano .env  # o usa tu editor favorito
+```
+
+3. **Configura tu token en `.env`**:
+
+```bash
+HF_TOKEN=tu_token_de_huggingface_aqui
+```
+
+### Paso 2: Construir la Imagen Docker
+
+```bash
+docker build -t whisperx-rtx5080:latest -f Dockerfile.gpu .
+```
+
+Este proceso puede tardar 10-15 minutos la primera vez.
+
+### Paso 3: Iniciar el Servicio
+
+```bash
+docker compose -f docker-compose.gpu.yml up -d
+```
+
+### Paso 4: Verificar que Funciona
+
+```bash
+# Ver logs
+docker compose -f docker-compose.gpu.yml logs -f
+
+# Verificar contenedor activo
+docker ps
+```
+
+Deberías ver el contenedor `whisperx5080-whisper-asr-webservice-gpu-1` corriendo.
+
+### Paso 5: Acceder al Servicio
+
+- **Interfaz Web**: http://localhost:9000
+- **Documentación API**: http://localhost:9000/docs
+- **API Alternativa**: http://localhost:9000/redoc
+
+## 📊 Configuración de Modelos
+
+### Modelos Disponibles y Uso de VRAM
+
+| Modelo | VRAM (float16) | Velocidad | Calidad | Recomendado para |
+|--------|----------------|-----------|---------|------------------|
+| tiny | ~1GB | Muy rápida | Básica | Pruebas rápidas |
+| base | ~1.5GB | Rápida | Buena | Transcripciones simples |
+| small | ~2.5GB | Media | Buena | Uso general |
+| medium | ~5GB | Media-Lenta | Muy buena | **Balance óptimo** |
+| large-v2 | ~8GB | Lenta | Excelente | Alta precisión |
+| large-v3 | ~10GB | Lenta | Excelente | **Máxima calidad** |
+
+### Cambiar el Modelo
+
+Edita `docker-compose.gpu.yml` y cambia:
+
+```yaml
+environment:
+  - ASR_MODEL=medium  # Cambia aquí: tiny, base, small, medium, large-v3
+```
+
+Luego reinicia:
+
+```bash
+docker compose -f docker-compose.gpu.yml restart
+```
+
+## 🎯 Uso de la API
+
+### Transcribir un Audio
+
+```bash
+curl -X POST "http://localhost:9000/asr" \
+  -H "accept: text/plain" \
+  -H "Content-Type: multipart/form-data" \
+  -F "audio_file=@tu_audio.mp3" \
+  -F "task=transcribe" \
+  -F "language=es" \
+  -F "output=json"
+```
+
+### Detectar Idioma
+
+```bash
+curl -X POST "http://localhost:9000/detect-language" \
+  -H "accept: application/json" \
+  -H "Content-Type: multipart/form-data" \
+  -F "audio_file=@tu_audio.mp3"
+```
+
+### Transcribir con Diarización (Múltiples Hablantes)
+
+```bash
+curl -X POST "http://localhost:9000/asr" \
+  -H "accept: text/plain" \
+  -H "Content-Type: multipart/form-data" \
+  -F "audio_file=@tu_audio.mp3" \
+  -F "task=transcribe" \
+  -F "language=es" \
+  -F "diarize=true" \
+  -F "min_speakers=2" \
+  -F "max_speakers=5" \
+  -F "output=json"
+```
+
+### Formatos de Salida Soportados
+
+- `txt`: Texto plano
+- `json`: JSON con timestamps
+- `srt`: Subtítulos SubRip
+- `vtt`: WebVTT subtítulos
+- `tsv`: Valores separados por tabulación
+
+## 🔍 Solución de Problemas
+
+### Error: "No se puede conectar al daemon de Docker"
+
+```bash
+sudo systemctl start docker
+sudo usermod -aG docker $USER
+# Cerrar sesión y volver a entrar
+```
+
+### Error: "could not select device driver"
+
+```bash
+# Instalar NVIDIA Container Toolkit
+sudo apt-get install -y nvidia-docker2
+sudo systemctl restart docker
+```
+
+### Error: "You must set the HF_TOKEN environment variable"
+
+Asegúrate de tener el token en tu archivo `.env`:
+
+```bash
+HF_TOKEN=hf_tu_token_aqui
+```
+
+### El contenedor se detiene inmediatamente
+
+```bash
+# Ver logs para identificar el error
+docker compose -f docker-compose.gpu.yml logs
+
+# Errores comunes:
+# - Token HF inválido o faltante
+# - GPU no detectada
+# - Falta de memoria VRAM
+```
+
+### Problemas de memoria VRAM
+
+Si te quedas sin memoria, prueba:
+
+1. **Usar modelo más pequeño**: Cambiar a `medium` o `small`
+2. **Habilitar cuantización int8**:
+   ```yaml
+   environment:
+     - ASR_QUANTIZATION=int8
+   ```
+
+## 🛠️ Comandos Útiles
+
+```bash
+# Detener el servicio
+docker compose -f docker-compose.gpu.yml down
+
+# Ver logs en tiempo real
+docker compose -f docker-compose.gpu.yml logs -f
+
+# Reconstruir después de cambios
+docker compose -f docker-compose.gpu.yml up -d --build
+
+# Limpiar caché de modelos
+docker volume rm whisperx5080_cache-whisper
+
+# Entrar al contenedor
+docker exec -it whisperx5080-whisper-asr-webservice-gpu-1 bash
+
+# Ver uso de GPU
+nvidia-smi
+
+# Monitorear GPU en tiempo real
+watch -n 1 nvidia-smi
+```
+
+## 📈 Optimizaciones de Rendimiento
+
+### Para RTX 5080 (16GB)
+
+La configuración actual ya está optimizada con:
+
+- ✅ `PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512`
+- ✅ `CUDA_MODULE_LOADING=LAZY`
+- ✅ Cuantización `float16` por defecto
+- ✅ Límite de memoria del contenedor a 14GB
+
+### Si necesitas más velocidad:
+
+```yaml
+environment:
+  - ASR_MODEL=small  # Modelo más rápido
+  - ASR_QUANTIZATION=int8  # Cuantización más agresiva
+```
+
+### Si necesitas más calidad:
+
+```yaml
+environment:
+  - ASR_MODEL=large-v3  # Mejor modelo
+  - ASR_QUANTIZATION=float16  # Mayor precisión
+```
+
+## 🌐 Idiomas Soportados
+
+WhisperX soporta 99+ idiomas, incluyendo:
+
+- 🇪🇸 Español (es)
+- 🇺🇸 Inglés (en)
+- 🇫🇷 Francés (fr)
+- 🇩🇪 Alemán (de)
+- 🇮🇹 Italiano (it)
+- 🇵🇹 Portugués (pt)
+- 🇨🇳 Chino (zh)
+- 🇯🇵 Japonés (ja)
+- 🇰🇷 Coreano (ko)
+- Y muchos más...
+
+Ver lista completa en: http://localhost:9000/docs
+
+## 📝 Variables de Entorno Disponibles
+
+| Variable | Valores | Por Defecto | Descripción |
+|----------|---------|-------------|-------------|
+| `HF_TOKEN` | string | - | Token de Hugging Face (obligatorio) |
+| `ASR_ENGINE` | whisperx, faster_whisper, openai_whisper | whisperx | Motor de transcripción |
+| `ASR_MODEL` | tiny, base, small, medium, large-v3 | large-v3 | Modelo a usar |
+| `ASR_DEVICE` | cuda, cpu | cuda | Dispositivo de cómputo |
+| `ASR_QUANTIZATION` | float32, float16, int8 | float16 | Precisión del modelo |
+| `MODEL_IDLE_TIMEOUT` | número | 0 | Tiempo antes de descargar modelo (segundos) |
+
+Ver `.env.example` para configuración completa.
+
+## 📚 Documentación Adicional
+
+- [Documentación de WhisperX](https://github.com/m-bain/whisperX)
+- [Modelos de Whisper](https://github.com/openai/whisper#available-models-and-languages)
+- [NVIDIA Docker](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
+
+## 📄 Licencia
+
+MIT License - Ver archivo [LICENCE](LICENCE)
+
+## 🤝 Contribuciones
+
+Basado en [whisper-asr-webservice](https://github.com/ahmetoner/whisper-asr-webservice) por Ahmet Öner.
+
+Optimizado para RTX 5080 por la comunidad.
+
+## 💡 Soporte
+
+Si encuentras problemas:
+
+1. Revisa la sección **Solución de Problemas**
+2. Verifica los logs: `docker compose -f docker-compose.gpu.yml logs`
+3. Verifica que tu GPU sea detectada: `nvidia-smi`
+4. Asegúrate de tener el token HF configurado
 
 ---
 
-### **Paso 1: Modificar el `Dockerfile.gpu`**
-
-El objetivo de este paso es actualizar la versión de CUDA que utiliza la imagen base para que sea compatible con tu hardware.
-
-1.  **Abre el archivo `Dockerfile.gpu`** que se encuentra en este mismo directorio.
-
-2.  **Busca la siguiente línea** al principio del archivo:
-
-    ```dockerfile
-    FROM nvidia/cuda:12.6.3-base-ubuntu22.04
-    ```
-
-3.  **Reemplázala** por esta línea, que utiliza una versión de CUDA más reciente:
-
-    ```dockerfile
-    FROM nvidia/cuda:12.8.0-runtime-ubuntu22.04
-    ```
-
----
-
-### **Paso 2: Construir la Imagen de Docker**
-
-Este comando compilará tu imagen de Docker personalizada a partir del `Dockerfile` que acabas de modificar.
-
-1.  **Abre tu terminal** en este directorio (`F:\Docker\whisper_custom`).
-
-2.  **Ejecuta el siguiente comando:**
-
-    ```bash
-    docker build -t whisper-custom:latest -f Dockerfile.gpu .
-    ```
-
-    *   `-t whisper-custom:latest`: Le da un nombre (`whisper-custom`) y una etiqueta (`latest`) a tu imagen.
-    *   `-f Dockerfile.gpu`: Especifica que se debe usar el archivo `Dockerfile.gpu`.
-    *   `.`: Indica que el contexto de la construcción son los archivos del directorio actual.
-
-    *Nota: Este proceso puede tardar varios minutos.*
-
----
-
-### **Paso 3: Crear el archivo `docker-compose.yml`**
-
-Este archivo define cómo se ejecutará tu imagen de Docker, habilitando la GPU y configurando WhisperX.
-
-1.  **Crea un archivo** llamado `docker-compose.yml` en este mismo directorio.
-
-2.  **Copia y pega el siguiente contenido** dentro de ese archivo:
-
-    ```yaml
-    version: '3.8'
-    services:
-      whisperx:
-        image: whisper-custom:latest
-        restart: always
-        ports:
-          - "8000:9000"
-        deploy:
-          resources:
-            reservations:
-              devices:
-                - driver: nvidia
-                  count: 1
-                  capabilities: [gpu]
-        environment:
-          - ASR_ENGINE=whisperx
-          - ASR_MODEL=large-v3
-        volumes:
-          - whisper_models:/root/.cache/whisper
-          - whisper_models:/app/models
-
-    volumes:
-      whisper_models:
-    ```
-
----
-
-### **Paso 4: Iniciar el Servicio**
-
-Con el archivo `docker-compose.yml` ya creado, este comando iniciará el servicio.
-
-1.  **Abre tu terminal** en este directorio.
-
-2.  **Ejecuta el comando:**
-
-    ```bash
-    docker compose up -d
-    ```
-
----
-
-### **Paso 5: Verificar el Servicio**
-
-Comprueba que el contenedor esté funcionando correctamente.
-
-1.  **Espera un par de minutos** a que el servicio se inicie.
-
-2.  **Ejecuta este comando** para ver los contenedores activos:
-
-    ```bash
-    docker ps
-    ```
-
-    *Deberías ver un contenedor llamado `whisper_custom-whisperx-1` con el estado `Up`.*
-
-3.  **Accede a la interfaz web** en tu navegador para empezar a transcribir:
-    `http://localhost:8000`
-
-4.  **Explora la API** en la siguiente URL:
-    `http://localhost:8000/docs`
-
----
-
-### **Paso 6: Subir tu Imagen a Docker Hub (Opcional)**
-
-Sigue estos pasos si quieres guardar tu imagen personalizada en la nube para usarla en otras máquinas.
-
-1.  **Inicia sesión en Docker Hub**:
-
-    ```bash
-    docker login
-    ```
-
-2.  **Re-etiqueta tu imagen** (reemplaza `TU_USUARIO_DOCKERHUB` con tu nombre de usuario real):
-
-    ```bash
-    docker tag whisper-custom:latest TU_USUARIO_DOCKERHUB/whisper-custom:latest
-    ```
-
-3.  **Sube la imagen** a tu cuenta de Docker Hub:
-
-    ```bash
-    docker push TU_USUARIO_DOCKERHUB/whisper-custom:latest
-    ```
+**¡Disfruta transcribiendo con WhisperX en tu RTX 5080! 🎉**
