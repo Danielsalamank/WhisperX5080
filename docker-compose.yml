@@ -1,0 +1,18 @@
+services:
+  whisper-asr-webservice:
+    image: onerahmet/openai-whisper-asr-webservice:latest-gpu
+    container_name: whisperx5080-whisper-asr-webservice
+    ports:
+      - "8000:9000"
+    environment:
+      - ASR_ENGINE=faster_whisper
+      - ASR_MODEL=large-v3
+      - ASR_VAD=true
+      - TZ=UTC
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    volumes:
+      - ./config:/config

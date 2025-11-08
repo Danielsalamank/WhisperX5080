@@ -1,0 +1,9 @@
+# Entornos
+.env
+
+# Cachés y modelos
+config/
+**/.cache/
+**/.locks/
+**/.nv/
+**/models--*/
